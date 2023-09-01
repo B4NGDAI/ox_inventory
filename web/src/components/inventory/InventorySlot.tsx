@@ -154,13 +154,7 @@ const InventorySlot: React.FC<SlotProps> = ({ inventory, item }) => {
           <div className="item-slot-wrapper" style={{
           background: (item?.durability == 0) ? 'radial-gradient(circle, rgba(136,0,0,0.6979166666666667) 0%, rgba(136,0,0,0.4990371148459384) 40%, rgba(255,255,255,0) 80%)' : undefined
         }}>
-            <div
-              className={
-                inventory.type === 'player' && item.slot <= 4
-                  ? 'item-hotslot-header-wrapper'
-                  : 'item-slot-header-wrapper'
-              }
-            >
+            <div className={inventory.type === 'player' && item.slot <= 4 ? 'item-hotslot-header-wrapper' : 'item-slot-header-wrapper'}>
               {inventory.type === 'player' && item.slot <= 4 && (
                 <div className="inventory-slot-number">{item.slot}</div>
               )}

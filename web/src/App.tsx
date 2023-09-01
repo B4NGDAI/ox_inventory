@@ -77,7 +77,7 @@ debugData([
             weight: 1000,
             price: 300,
             ingredients: {
-              consumable_coffee: 1,
+              consumable_coffee: 2,
             },
             duration: 10,
             metadata: {

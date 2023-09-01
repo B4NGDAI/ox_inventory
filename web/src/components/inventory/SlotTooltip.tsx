@@ -93,7 +93,7 @@ const SlotTooltip: React.FC<{ item: SlotWithItem; inventory: Inventory }> = ({ i
             </>
           ) : (
             <div className="tooltip-ingredients">
-              {/* {ingredients &&
+              {ingredients &&
                 ingredients.map((ingredient) => {
                   const [item, count] = [ingredient[0], ingredient[1]];
                   return (
@@ -108,7 +108,7 @@ const SlotTooltip: React.FC<{ item: SlotWithItem; inventory: Inventory }> = ({ i
                       </p>
                     </div>
                   );
-                })} */}
+                })}
             </div>
           )}
         </div>
