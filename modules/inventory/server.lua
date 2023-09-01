@@ -28,9 +28,9 @@ end
 ---Close a player's inventory.
 ---@param noEvent? boolean
 function OxInventory:closeInventory(noEvent)
-	if not self.player then return end
+	if not self.player or not self.open then return end
 
-	local inv = self.open and Inventory(self.open)
+	local inv = Inventory(self.open)
 
 	if not inv then return end
 
@@ -273,7 +273,9 @@ function Inventory.CloseAll(inv, ignoreId)
 			for playerId in pairs(data.openedBy) do
 				local playerInv = Inventory(playerId)
 
-				if playerInv then playerInv:closeInventory(true) end
+				if playerInv and playerId ~= ignoreId then
+					playerInv:closeInventory()
+				end
 			end
 		end
 
