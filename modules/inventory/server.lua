@@ -2500,6 +2500,10 @@ local function updateWeapon(source, action, value, slot, ammoType)
 				if ammoType == true then
 					if not Inventory.RemoveItem(inventory, weapon.name, 1, weapon.metadata, weapon.slot) then return end
 				end
+			elseif action == 'rust' then
+				weapon.metadata.rust = value
+			elseif action == 'dust' then
+				weapon.metadata.dust = value
 			end
 
 			if action ~= 'throw' then

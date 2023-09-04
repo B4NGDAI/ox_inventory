@@ -80,14 +80,14 @@ CreateThread(function()
 				---@todo separate into functions for reusability, properly handle nil values
 				local itemFormat = [[
 
-	[%q] = {
-		label = %q,
-		weight = %s,
-		stack = %s,
-		close = %s,
-		description = %q
-	},
-]]
+					[%q] = {
+						label = %q,
+						weight = %s,
+						stack = %s,
+						close = %s,
+						description = %q
+					},
+				]]
 				local fileSize = #file
 
 				for _, item in pairs(dump) do
@@ -173,22 +173,22 @@ CreateThread(function()
 				---@todo separate into functions for reusability, properly handle nil values
 				local itemFormat = [[
 
-	[%q] = {
-		label = %q,
-		weight = %s,
-		stack = %s,
-		close = %s,
-		description = %q,
-		client = {
-			status = {
-				hunger = %s,
-				thirst = %s,
-				stress = %s
-			},
-			image = %q,
-		}
-	},
-]]
+					[%q] = {
+						label = %q,
+						weight = %s,
+						stack = %s,
+						close = %s,
+						description = %q,
+						client = {
+							status = {
+								hunger = %s,
+								thirst = %s,
+								stress = %s
+							},
+							image = %q,
+						}
+					},
+				]]
 
 				local fileSize = #file
 
@@ -281,7 +281,8 @@ function Items.Metadata(inv, item, metadata, count)
 	if item.weapon then
 		if type(metadata) ~= 'table' then metadata = {} end
 		if not metadata.durability then metadata.durability = 100 end
-		if not metadata.rust then metadata.rust = -100 end --negative to use gunoil
+		if not metadata.rust then metadata.rust = 0 end
+		if not metadata.dirt then metadata.dirt = 0 end
 		--if not metadata.durability then metadata.durability = os.time() + 86400000 end
 		--if not metadata.ammo and item.ammoname then metadata.ammo = 0 end
 		if not metadata.components then metadata.components = {} end

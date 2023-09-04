@@ -103,6 +103,9 @@ function Weapon.Equip(item, data)
 	end
 	item.weaponObject = WeaponObject
 	Citizen.InvokeNative(0xA7A57E89E965D839 ,item.weaponObject , tonumber(1 - (item.metadata?.durability / 100))) --SetWeaponDegradation
+	if item.metadata?.rust > 0 then
+		Citizen.InvokeNative(0xE22060121602493B ,item.weaponObject , tonumber((item.metadata?.rust / 100))) --SetWeaponRust
+	end
 	--Citizen.InvokeNative(0xE22060121602493B , item.weaponObject , tonumber(1 - (item.metadata?.durability / 100))) --SetWeaponDamage Visual
 	--Citizen.InvokeNative(0x812CE61DEBCAB948 , item.weaponObject , tonumber(item.metadata?.dirt)) --SetWeaponDirt
 	

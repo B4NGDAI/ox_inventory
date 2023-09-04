@@ -295,6 +295,7 @@ return {
 			weight = 1000,
 			description = 'Semi-Auto',
 			durability = 0.03,
+			inspect = true,
 			allowedAmmos = {
 				["AMMO_PISTOL"] = true,                       
 				["AMMO_PISTOL_EXPRESS"] = true,               

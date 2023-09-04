@@ -102,7 +102,6 @@ const InventoryContext: React.FC = () => {
 
   return (
     <>
-      {item && console.log(JSON.stringify(item))}
       <Menu
         autoFocus={false}
         disableAutoFocusItem
@@ -115,7 +114,7 @@ const InventoryContext: React.FC = () => {
           contextMenu.coords !== null ? { top: contextMenu.coords.mouseY, left: contextMenu.coords.mouseX } : undefined
         }
         onClose={() => dispatch(setContextMenu({ coords: null }))}
-      >
+      > 
         <MenuItem onClick={() => handleClick({ action: 'use' })}>{Locale.ui_use || 'Use'}</MenuItem>
         <MenuItem onClick={() => handleClick({ action: 'give' })}>{Locale.ui_give || 'Give'}</MenuItem>
         <MenuItem onClick={() => handleClick({ action: 'drop' })}>{Locale.ui_drop || 'Drop'}</MenuItem>

@@ -514,7 +514,7 @@ function useSlot(slot)
 			end)
 		elseif currentWeapon then
 			if data.ammo then -- if uses weapon ? as per items/shared.lua
-				print(json.encode(currentWeapon,{indent=true}))
+				--print(json.encode(currentWeapon,{indent=true}))
 				if EnableWeaponWheel then return end
 				-- Index Method. Might need in case of performance issues
 				-- if not (currentWeapon.allowedAmmos and currentWeapon.allowedAmmos[data.name]) then
@@ -548,9 +548,7 @@ function useSlot(slot)
 					local missingAmmo = clipSize - currentAmmo
 					--print('Missing Ammo :',missingAmmo)
 					local addAmmo = resp.count > missingAmmo and missingAmmo or resp.count
-					print('Add Ammo :',addAmmo)
 					local newAmmo = currentAmmo + addAmmo
-					print('New Ammo :',newAmmo)
 					if newAmmo == currentAmmo then 
 						return lib.notify({title = 'Ammo',description = 'Max Ammo In Clip',type = 'error'})
 					end
@@ -580,7 +578,6 @@ function useSlot(slot)
 
 						if not currentWeapon.canFire then currentWeapon.canFire = true end
 						local WeaponObject = Citizen.InvokeNative(0x6CA484C9A7377E4F, playerPed, true)
-						print('GetCurrentPedWeaponAmmoType :', Citizen.InvokeNative(0x7E7B19A4355FEE13, playerPed, WeaponObject))
 						Wait(100)
 						Citizen.InvokeNative(0x79E1E511FF7EFB13, PlayerPedId()) -- MakePedReload
 						--currentWeapon.metadata.ammoType = resp.name
@@ -1056,7 +1053,8 @@ end)
 local function nearbyDrop(point)
 	if not point.instance or point.instance == currentInstance then
 		---@diagnostic disable-next-line: param-type-mismatch
-		DrawMarker(2, point.coords.x, point.coords.y, point.coords.z, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.3, 0.2, 0.15, 150, 30, 30, 222, false, false, 0, true, false, false, false)
+		--DrawMarker(2, point.coords.x, point.coords.y, point.coords.z, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.3, 0.2, 0.15, 150, 30, 30, 222, false, false, 0, true, false, false, false)
+		Citizen.InvokeNative(0x2A32FAA57B937173,0x07DCE236,point.coords.x, point.coords.y, point.coords.z,0,0,0,0,0,0,1.0,1.0,1.0,250,250,100,250,0, 0, 2, 0, 0, 0, 0)
 	end
 end
 
@@ -1242,11 +1240,52 @@ local RustWeather = {
 	[`WHITEOUT`] = true
 }
 
+local function UnderCover()
+    local ped = cache.ped -- Get the player's ped (assuming you are the player)
+    local playerPos = cache.coords -- Get the player's position
+
+    -- Define the starting point and endpoint for the raycast.
+    local origin = playerPos
+    local target = playerPos + vector3(0.0, 0.0, 20.0) -- 10 units above the player
+
+    -- Perform the raycast.
+    local shapeTest = StartShapeTestRay(origin.x, origin.y, origin.z, target .x, target .y, target .z, -1, ped ,7)
+    local retval, hit, endCoords, surfaceNormal, entityHit = GetShapeTestResult(shapeTest)
+
+    return {retval, hit}
+end
+
 ---@type function?
 local function ShouldRustWeapon()
+	local playerPed = cache.ped
+	if Citizen.InvokeNative(0x2942457417A5FD24,playerPed, Citizen.ResultAsFloat()) > 0.0 then -- improve using RayCast
+		return true
+	elseif RustWeather[Citizen.InvokeNative(0x4BEB42AEBCA732E9)] then --Has Rusty Weather defined above (works only with weathersync)
+		local retval, hit = table.unpack(UnderCover())
+		if retval == 2 and hit > 0 then -- Under Cover or Interior
+			return false
+		else
+			return true
+		end
+	else
+		return false
+	end
+end
+
+local function ShouldDirtWeapon()
 	local ped = cache.ped
-	return Citizen.InvokeNative(0x2942457417A5FD24,playerPed, Citizen.ResultAsFloat()) > 0 -- Ped In Water
-	or RustWeather[Citizen.InvokeNative(0x4BEB42AEBCA732E9)] --Has Rusty Weather defined above (works only with weathersync)
+	if Citizen.InvokeNative(0x4BEB42AEBCA732E9) == `SANDSTORM` then --Has Sandstorm Weather defined above (works only with weathersync)
+		local interior = GetInteriorFromEntity(ped)
+		if interior ~= 0 then 
+			return true
+		else
+			return false
+		end
+	elseif math.random(0, 100) < 20 then
+		return true
+	else
+		return false
+	end
 end
 
 RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inventory, weight, player)
@@ -1268,6 +1307,8 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 	if setStateBagHandler then setStateBagHandler(('player:%s'):format(cache.serverId)) end
 
 	local ItemData = table.create(0, #Items)
+
+	
 
 	for _, v in pairs(Items --[[@as table<string, OxClientItem>]]) do
 		local buttons = v.buttons and {} or nil
@@ -1292,6 +1333,7 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 
 	for _, data in pairs(inventory) do
 		local item = Items[data.name]
+		print(json.encode(item, {indent = true}))
 
 		if item then
 			item.count += data.count
@@ -1407,6 +1449,22 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 
 	TriggerEvent('ox_inventory:updateInventory', PlayerData.inventory)
 
+	client.interval = SetInterval(function() 
+		if currentWeapon and currentWeapon.timer then
+			if ShouldRustWeapon() then
+				local random = math.random(0, 100)
+				print('Rust ? : '..random)
+				if random <= 20 and currentWeapon.metadata?.rust <= 100 then
+					currentWeapon.metadata.rust = currentWeapon.metadata.rust + 1
+					TriggerServerEvent('ox_inventory:updateWeapon', 'rust', currentWeapon.metadata.rust) 
+					Citizen.InvokeNative(0xE22060121602493B ,currentWeapon.weaponObject , tonumber((currentWeapon.metadata.rust / 100))) --SetWeaponRust
+					print('RUSTED')
+					-- Save Rust Anyhow
+				end
+			end
+		end
+	end, 1*1000)
+
 	client.interval = SetInterval(function()
 		if invOpen == false then
 			playerCoords = GetEntityCoords(playerPed)
@@ -1497,6 +1555,8 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 	local IsPedShooting = IsPedShooting
 	local IsControlJustReleased = IsControlJustReleased
 
+
+
 	client.tick = SetInterval(function()
 		--DisableControlAction(0, 0xAC4BD4F1, false) -- Weapon Wheel
 		--Citizen.InvokeNative(0x4CC5F2FC1332577F ,GetHashKey("HUD_CTX_IN_FAST_TRAVEL_MENU")) -- Remove Reticle
@@ -1535,15 +1595,6 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 				elseif not currentWeapon.canFire then
 					DisablePlayerFiring(playerId, true)
 	 			end		
-				if ShouldRustWeapon() then
-					local random = math.random(0, 100)
-					if random < 10 and currentWeapon.metadata?.rust < 100 then
-						currentWeapon.metadata.rust = currentWeapon.metadata.rust + 0.1
-						currentWeapon.timer = GetGameTimer() + 400
-						-- Save Rust Anyhow
-					end
-					DrawText('RUSTING : '..currentWeapon.metadata?.rust, 20, 0.5, 0.85, 1.0, 1.0, 255, 255, 255, 255)
-				end
 	 			local weaponAmmo = currentWeapon.metadata.ammo
 	 			if not invBusy and currentWeapon.timer ~= 0 and currentWeapon.timer < GetGameTimer() then
 	 				currentWeapon.timer = 0
@@ -1586,7 +1637,6 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 	 							currentWeapon.metadata.durability = currentWeapon.metadata.durability - (durabilityDrain * math.abs((weaponAmmo or 0.1) - currentAmmo))
 								currentWeapon.metadata.rust = currentWeapon.metadata.rust
 								Citizen.InvokeNative(0xA7A57E89E965D839 , currentWeapon.weaponObject , tonumber(1 - (currentWeapon.metadata?.durability / 100))) --SetWeaponDegradation
-								--Citizen.InvokeNative(0xE22060121602493B , currentWeapon.weaponObject , tonumber(1 - (currentWeapon.metadata?.durability / 100))) --SetWeaponDamage
 							else
 								print('More Ammo ?')
 	 						end
@@ -1601,19 +1651,24 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 	 					else currentWeapon.timer = GetGameTimer() + 400 end
 	 				end
 				elseif currentWeapon.throwable then
-					if not invBusy and IsPlayerFreeAiming(playerId) and IsControlPressed(0, 0x07CE1E61) then
+					if not invBusy and IsControlPressed(0, 0x07CE1E61) then
 						invBusy = 1
 
 						CreateThread(function()
 							local weapon = currentWeapon
 
-							while currentWeapon and (not IsPlayerFreeAiming(playerId) or IsDisabledControlPressed(0, 0x07CE1E61)) and Citizen.InvokeNative(0x8425C5F057012DAB, playerPed) == weapon.hash do		
-								Wait(0)
+							while currentWeapon and (not IsPlayerFreeAiming(playerId) or IsControlPressed(0, 0xF84FA74F)) and Citizen.InvokeNative(0x8425C5F057012DAB, playerPed) == weapon.hash do		
+								Wait(1)
 							end
 
-							if Citizen.InvokeNative(0x8425C5F057012DAB, playerPed) == weapon.hash then Wait(700) end
+							if Citizen.InvokeNative(0x8425C5F057012DAB, playerPed) == weapon.hash then 
+								Wait(700) 
+							end
 
-							--while IsPedPlantingBomb(playerPed) do Wait(0) end
+							while IsPedPlantingBomb(playerPed) do
+								print('Planting')
+								Wait(1) 
+							end
 
 							TriggerServerEvent('ox_inventory:updateWeapon', 'throw', nil, weapon.slot)
 
