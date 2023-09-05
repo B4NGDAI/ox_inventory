@@ -1333,7 +1333,6 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 
 	for _, data in pairs(inventory) do
 		local item = Items[data.name]
-		print(json.encode(item, {indent = true}))
 
 		if item then
 			item.count += data.count
@@ -1450,7 +1449,7 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 	TriggerEvent('ox_inventory:updateInventory', PlayerData.inventory)
 
 	client.interval = SetInterval(function() 
-		if currentWeapon and currentWeapon.timer then
+		if currentWeapon and currentWeapon.timer and currentWeapon.canInspect then
 			if ShouldRustWeapon() then
 				local random = math.random(0, 100)
 				print('Rust ? : '..random)
@@ -1784,11 +1783,15 @@ end)
 
 RegisterNUICallback('inspectWeapon', function(slot, cb)
 	cb(1)
-	local slotData = PlayerData.inventory[slot]
-	print(json.encode(slotData))
-	client.closeInventory()
-	Wait(500)
-	exports['dev-lua']:startWeaponInspection(true, nil, slotData.metadata.serial)
+	if currentWeapon and currentWeapon?.canInspect == true then
+		local slotData = PlayerData.inventory[slot]
+		print(json.encode(currentWeapon,{indent=true}))
+		client.closeInventory()
+		Wait(500)
+		exports['dev-lua']:startWeaponInspection(true, nil, slotData.metadata.serial)
+	else
+		print('Cannot Inspect')
+	end
 end)
 
 RegisterNUICallback('useItem', function(slot, cb)

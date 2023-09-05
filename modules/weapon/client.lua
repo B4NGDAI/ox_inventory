@@ -27,6 +27,15 @@ fuelWeapons[`WEAPON_MELEE_DAVY_LANTERN`] = true
 fuelWeapons[`WEAPON_MELEE_LANTERN_HALLOWEEN`] = true
 fuelWeapons[`WEAPON_MELEE_TORCH`] = true
 
+local inspectGroups = {
+	[970310034]		= true,
+	[-594562071]	= true,
+	[416676503]		= true,
+	[-1212426201]	= true,
+	[-1101297303]	= true,
+	[860033945]		= true	
+};
+
 function Weapon.Equip(item, data)
 	local playerPed = cache.ped
 	local coords = GetEntityCoords(playerPed, true)
@@ -52,6 +61,7 @@ function Weapon.Equip(item, data)
 	-- Find a solution to use bow with 1 ammo
 	item.needAmmo = needAmmo[item.group]
 	item.allowedAmmos = Items(item.name).allowedAmmos or nil
+	item.canInspect = inspectGroups[item.group]
 	item.canFire = true
 
 	if not HasPedGotWeapon(playerPed, item.hash, 0, true) then

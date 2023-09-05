@@ -127,11 +127,11 @@ const InventoryContext: React.FC = () => {
             {Locale.ui_copy}
           </MenuItem>
         )}
-        {/* {item && item.group && inspectGroups.includes(item.group) && (
+        {item && item.group && inspectGroups.includes(item.group) && (
           <MenuItem onClick={() => handleClick({ action: 'inspectWeapon'})}>
             {Locale.ui_inspectWeapon}
           </MenuItem>
-        )} */}
+        )}
         {item && item.metadata?.components && item.metadata?.components.length > 0 && <Divider />}
         {item && item.metadata?.components && item.metadata?.components.length > 0 && (
           <NestedMenuItem parentMenuOpen={!!contextMenu} label={Locale.ui_removeattachments}>
