@@ -491,7 +491,7 @@ function useSlot(slot)
 			if currentWeapon then
 				print('Disarm Requested')
 				local weaponSlot = currentWeapon.slot
-				currentWeapon = Weapon.Disarm(currentWeapon, false, true)
+				currentWeapon = Weapon.Disarm(currentWeapon, false, false)
 
 				if weaponSlot == data.slot then return end
 			end
@@ -1276,12 +1276,14 @@ local function ShouldDirtWeapon()
 	local ped = cache.ped
 	if Citizen.InvokeNative(0x4BEB42AEBCA732E9) == `SANDSTORM` then --Has Sandstorm Weather defined above (works only with weathersync)
 		local interior = GetInteriorFromEntity(ped)
-		if interior ~= 0 then 
+		if interior == 0 then 
 			return true
 		else
 			return false
 		end
-	elseif math.random(0, 100) < 20 then
+	elseif (GetWindSpeed() > 1.0 and GetWindSpeed() < 5.0) and math.random(0, 100) < 20 then
+		return true
+	elseif GetWindSpeed() > 5.0 then
 		return true
 	else
 		return false
@@ -1448,21 +1450,26 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 
 	TriggerEvent('ox_inventory:updateInventory', PlayerData.inventory)
 
+	-- Alert This might cause hitches on large scale 
 	client.interval = SetInterval(function() 
 		if currentWeapon and currentWeapon.timer and currentWeapon.canInspect then
-			if ShouldRustWeapon() then
-				local random = math.random(0, 100)
-				print('Rust ? : '..random)
-				if random <= 20 and currentWeapon.metadata?.rust <= 100 then
+			if math.random(0, 100) <= 20 and ShouldRustWeapon() then
+				if currentWeapon.metadata?.rust <= 100 then
 					currentWeapon.metadata.rust = currentWeapon.metadata.rust + 1
 					TriggerServerEvent('ox_inventory:updateWeapon', 'rust', currentWeapon.metadata.rust) 
 					Citizen.InvokeNative(0xE22060121602493B ,currentWeapon.weaponObject , tonumber((currentWeapon.metadata.rust / 100))) --SetWeaponRust
 					print('RUSTED')
-					-- Save Rust Anyhow
+				end
+			elseif math.random(0, 100) <= 50 and ShouldDirtWeapon() then
+				if currentWeapon.metadata?.dirt <= 100 then
+					currentWeapon.metadata.dirt = currentWeapon.metadata.dirt + 1
+					TriggerServerEvent('ox_inventory:updateWeapon', 'dirt', currentWeapon.metadata.dirt) 
+					Citizen.InvokeNative(0x812CE61DEBCAB948 ,currentWeapon.weaponObject , tonumber((currentWeapon.metadata.dirt / 100))) --SetWeaponDust
+					print('DUSTED')
 				end
 			end
 		end
-	end, 1*1000)
+	end, 1000)
 
 	client.interval = SetInterval(function()
 		if invOpen == false then
@@ -1538,7 +1545,7 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 		-- end
 		if currentWeapon and weaponHash ~= currentWeapon.hash and currentWeapon.group ~= GetWeapontypeGroup(`WEAPON_UNARMED`) then
 			print('Wrong Weapon In Hand')
-			currentWeapon = Weapon.Disarm(currentWeapon, true)
+			currentWeapon = Weapon.Disarm(currentWeapon, false, false)
 		end
 	end, 200)
 
@@ -1634,8 +1641,11 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 	 							currentAmmo = (weaponAmmo < currentAmmo) and 0 or currentAmmo
 	 							currentWeapon.metadata.ammo = currentAmmo
 	 							currentWeapon.metadata.durability = currentWeapon.metadata.durability - (durabilityDrain * math.abs((weaponAmmo or 0.1) - currentAmmo))
-								currentWeapon.metadata.rust = currentWeapon.metadata.rust
-								Citizen.InvokeNative(0xA7A57E89E965D839 , currentWeapon.weaponObject , tonumber(1 - (currentWeapon.metadata?.durability / 100))) --SetWeaponDegradation
+								if currentWeapon.canInspect then
+									currentWeapon.metadata.rust = currentWeapon.metadata.rust
+									Citizen.InvokeNative(0xA7A57E89E965D839 , currentWeapon.weaponObject , tonumber(1 - (currentWeapon.metadata?.durability / 100))) --SetWeaponDegradation
+									
+								end
 							else
 								print('More Ammo ?')
 	 						end

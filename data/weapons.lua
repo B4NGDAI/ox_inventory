@@ -295,7 +295,6 @@ return {
 			weight = 1000,
 			description = 'Semi-Auto',
 			durability = 0.03,
-			inspect = true,
 			allowedAmmos = {
 				["AMMO_PISTOL"] = true,                       
 				["AMMO_PISTOL_EXPRESS"] = true,               
@@ -355,6 +354,7 @@ return {
 				["AMMO_REVOLVER_EXPRESS_EXPLOSIVE"] = true,         
 				["AMMO_REVOLVER_HIGH_VELOCITY"] = true,             
 				["AMMO_REVOLVER_SPLIT_POINT"] = true,
+				['AMMO_SHOTGUN'] = true
 			}
 		},	
 		['WEAPON_REVOLVER_SCHOFIELD'] = {

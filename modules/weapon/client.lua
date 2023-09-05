@@ -34,7 +34,7 @@ local inspectGroups = {
 	[-1212426201]	= true,
 	[-1101297303]	= true,
 	[860033945]		= true	
-};
+}
 
 function Weapon.Equip(item, data)
 	local playerPed = cache.ped
@@ -52,20 +52,16 @@ function Weapon.Equip(item, data)
 
 	item.timer = 0
 	item.group = GetWeapontypeGroup(item.hash)
-	--item.throwable = Items(item.name).throwable or false
-	item.throwable = (item.group == `group_thrown`)
-	item.melee = (item.group == `group_melee`) and 0 or nil
-	item.fuel = fuelWeapons[item.hash]
+	item.throwable = (item.group == `group_thrown`) -- To Handle thrown weapons
+	item.melee = (item.group == `group_melee`) and 0 or nil -- To Handle melee weapons
+	item.fuel = fuelWeapons[item.hash] -- To Handle handheld weapons like torch and lanterns
 	item.attachPoint = data.attachPoint or 0
-	-- For Test as thrown , bow need ammo
-	-- Find a solution to use bow with 1 ammo
-	item.needAmmo = needAmmo[item.group]
 	item.allowedAmmos = Items(item.name).allowedAmmos or nil
-	item.canInspect = inspectGroups[item.group]
-	item.canFire = true
+	item.canInspect = inspectGroups[item.group] -- To Handle Rust/Dirt
+	item.canFire = true -- To handle bow thing until a solution to not unequip bow on 0 ammo
 
 	if not HasPedGotWeapon(playerPed, item.hash, 0, true) then
-		if item.needAmmo then
+		if needAmmo[item.group] then
 			GiveWeaponToPed_2(playerPed, item.hash, 1, false, true, 0, false, 0.5, 1.0, 752097756, false, 0.0, false)
 		else
 			GiveWeaponToPed_2(playerPed, item.hash, 0, false, true, 0, false, 0.5, 1.0, 752097756, false, 0.0, false)
@@ -115,30 +111,9 @@ function Weapon.Equip(item, data)
 	Citizen.InvokeNative(0xA7A57E89E965D839 ,item.weaponObject , tonumber(1 - (item.metadata?.durability / 100))) --SetWeaponDegradation
 	if item.metadata?.rust > 0 then
 		Citizen.InvokeNative(0xE22060121602493B ,item.weaponObject , tonumber((item.metadata?.rust / 100))) --SetWeaponRust
+	elseif item.metadata?.dirt > 0 then
+		Citizen.InvokeNative(0x812CE61DEBCAB948 ,item.weaponObject , tonumber((item.metadata?.dirt / 100))) --SetWeaponDirt
 	end
-	--Citizen.InvokeNative(0xE22060121602493B , item.weaponObject , tonumber(1 - (item.metadata?.durability / 100))) --SetWeaponDamage Visual
-	--Citizen.InvokeNative(0x812CE61DEBCAB948 , item.weaponObject , tonumber(item.metadata?.dirt)) --SetWeaponDirt
-	
-	-- Citizen.InvokeNative(0xA7A57E89E965D839 ,item.weaponObject , tonumber(1.0)) --SetWeaponDegradation
-	-- Citizen.InvokeNative(0x812CE61DEBCAB948 ,item.weaponObject , tonumber(0.0)) --SetWeaponDirt
-	-- Citizen.InvokeNative(0xA9EF4AD10BDDDB57 ,item.weaponObject , tonumber(0.0)) --SetWeaponSoot
-	-- Citizen.InvokeNative(0xE22060121602493B ,item.weaponObject , tonumber(0.0)) --SetWeaponRust
-	-- SetPedCurrentWeaponVisible()
-	-- Weapon Degradation --
-	-- while not GetObjectIndexFromEntityIndex(GetCurrentPedWeaponEntityIndex(playerPed , 0)) do 
-	-- 	print('Waiting for wapon')
-    --     Wait(1)
-    -- end
-    -- local WeaponObject = GetObjectIndexFromEntityIndex(GetCurrentPedWeaponEntityIndex(playerPed , 0))
-	-- print('Weapon Object :',WeaponObject)
-	--SetWeaponsNoAutoswap(true)
-	--SetTimeout(0, function() RefillAmmoInstantly(playerPed) end)
-	-- SetTimeout(0, function() MakePedReload(playerPed) end)
-
-	-- if item.group == `GROUP_PETROLCAN` or item.group == `GROUP_FIREEXTINGUISHER` then
-	-- 	item.metadata.ammo = item.metadata.durability
-	-- 	SetPedInfiniteAmmo(playerPed, true, data.hash)
-	-- end
 
 	TriggerEvent('ox_inventory:currentWeapon', item)
 	Utils.ItemNotify({ item, 'ui_equipped' })
@@ -187,12 +162,11 @@ function Weapon.Disarm(currentWeapon, noAnim, hide)
 	--Utils.WeaponWheel()
 	--SetPedCurrentWeaponVisible(cache.ped, false, false, false, false) -- No Anim, wapon stay
 	if hide == false then
+		Citizen.InvokeNative(0xFCCC886EDE3C63EC, cache.ped, 2, false) -- Holster Animation, weapon stay [HidePedWeapons]
+		Wait(100)
 		RemoveWeaponFromPed(cache.ped, currentWeapon.hash, true, `REMOVE_REASON_DEFAULT`) -- Remove Weapon From Body
 		Citizen.InvokeNative(0x1B83C0DEEBCBB214, cache.ped) -- Remove All Ped Ammo
 		print('Weapon Removed :', currentWeapon.name)
-	elseif hide == true then
-		Citizen.InvokeNative(0xFCCC886EDE3C63EC, cache.ped, 2, false) -- Holster Animation, weapon stay [HidePedWeapons]
-		print('Weapon Holsterd :', currentWeapon.name)
     else
 		RemoveAllPedWeapons(cache.ped, true, true)
 	end

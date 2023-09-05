@@ -2303,6 +2303,7 @@ lib.cron.new('*/5 * * * *', function()
 end)
 
 function Inventory.SaveInventories(lock, clearInventories)
+	print('Saved Inventory')
 	Inventory.Lock = lock or nil
 
 	Inventory.CloseAll()
@@ -2502,8 +2503,8 @@ local function updateWeapon(source, action, value, slot, ammoType)
 				end
 			elseif action == 'rust' then
 				weapon.metadata.rust = value
-			elseif action == 'dust' then
-				weapon.metadata.dust = value
+			elseif action == 'dirt' then
+				weapon.metadata.dirt = value
 			end
 
 			if action ~= 'throw' then
