@@ -538,10 +538,10 @@ function useSlot(slot)
 
 				useItem(data, function(resp)
 					-- Removing it might caus issue
-					--if not resp or resp.name ~= currentWeapon?.ammo then return end
+					if not resp or not Citizen.InvokeNative(0x1F7977C9101F807F, joaat(resp.name)) then return end
 
 					local clipSize = GetMaxAmmoInClip(playerPed, currentWeapon.hash, true)
-					if currentWeapon.hash == `WEAPON_BOW` then clipSize = 10 end
+					if currentWeapon.hash == `WEAPON_BOW` or currentWeapon.hash == `WEAPON_BOW_IMPROVED` then clipSize = 5 end -- Later check for quiver on player
 					--print('ClipSize', clipSize)
 					local currentAmmo = GetPedAmmoByType(playerPed, joaat(data.name))
 					--print('Current Ammo :',currentAmmo)
@@ -563,11 +563,7 @@ function useSlot(slot)
 						--AddAmmoToPed(playerPed, currentWeapon.hash, addAmmo)
 						-- Check in weapon debug command
 						print('Adding '..addAmmo.. 'x ammo of type :'..joaat(resp.name).. ' ('..resp.name..')' )
-						--SetAmmoTypeForPedWeapon
-						--Citizen.InvokeNative(0xCC9C4393523833E2, playerPed, currentWeapon.hash, joaat(resp.name))
-
 						Citizen.InvokeNative(0x106A811C6D3035F3, playerPed, joaat(resp.name), addAmmo, `ADD_REASON_DEFAULT`) --AddAmmoToPedByType
-						--Citizen.InvokeNative(0xCC9C4393523833E2, playerPed, currentWeapon.hash, joaat(resp.name)) -- SetAmmoTypeForPedWeapon
 
 						if not (currentWeapon.metadata?.ammoType == `AMMO_ARROW`) then
 							print('Removing Default Ammo Gave to Equp Bow')
@@ -1793,12 +1789,14 @@ end)
 
 RegisterNUICallback('inspectWeapon', function(slot, cb)
 	cb(1)
+	print('enspect nu')
 	if currentWeapon and currentWeapon?.canInspect == true then
 		local slotData = PlayerData.inventory[slot]
 		print(json.encode(currentWeapon,{indent=true}))
 		client.closeInventory()
 		Wait(500)
-		exports['dev-lua']:startWeaponInspection(true, nil, slotData.metadata.serial)
+		Weapon.Inspect(currentWeapon)
+		--exports['dev-lua']:startWeaponInspection(true, nil, slotData.metadata.serial)
 	else
 		print('Cannot Inspect')
 	end

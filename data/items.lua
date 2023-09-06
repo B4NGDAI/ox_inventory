@@ -51,4 +51,8 @@ return {
 		},
 		consume = 0.3
 	},
+	['KIT_GUN_OIL'] = {
+		label = 'Gun Oil',
+		weight = 220,
+	}
 }

@@ -36,6 +36,7 @@ local inspectGroups = {
 	[860033945]		= true	
 }
 
+
 function Weapon.Equip(item, data)
 	local playerPed = cache.ped
 	local coords = GetEntityCoords(playerPed, true)
@@ -190,7 +191,173 @@ function Weapon.ClearAll(currentWeapon)
 	end
 end
 
+----- INSPECT ----------
+
+local function InventoryGetGuidFromItemId(inventoryId, itemDataBuffer, category, slotId, outItemBuffer) return Citizen.InvokeNative(0x886DFD3E185C8A89, inventoryId, itemDataBuffer, category, slotId, outItemBuffer) end
+local function SetWeaponDegradation(weaponObject, float) Citizen.InvokeNative(0xA7A57E89E965D839, weaponObject, float, Citizen.ResultAsFloat()) end
+local function SetWeaponDamage(weaponObject, float, p2) Citizen.InvokeNative(0xE22060121602493B, weaponObject, float, p2) end
+local function SetWeaponDirt(weaponObject, float, p2) Citizen.InvokeNative(0x812CE61DEBCAB948, weaponObject, float, p2) end
+local function SetWeaponSoot(weaponObject, float, p2) Citizen.InvokeNative(0xA9EF4AD10BDDDB57, weaponObject, float, p2) end
+local function DisableControlAction(padIndex, control, disable) Citizen.InvokeNative(0xFE99B66D079CF6BC, padIndex, control, disable) end
+local function IsPedRunningInspectionTask(ped) return Citizen.InvokeNative(0x038B1F1674F0E242, ped) end
+local function SetPedBlackboardBool(ped, visibleName, value, removeTimer) return Citizen.InvokeNative(0xCB9401F918CB0F75, ped, visibleName, value, removeTimer)  end
+local function GetWeaponDamage(weaponObject) return Citizen.InvokeNative(0x904103D5D2333977, weaponObject, Citizen.ResultAsFloat())  end
+local function GetWeaponDirt(weaponObject) return Citizen.InvokeNative(0x810E8AE9AFEA7E54, weaponObject, Citizen.ResultAsFloat()) end
+local function GetWeaponSoot(weaponObject) return Citizen.InvokeNative(0x4BF66F8878F67663, weaponObject, Citizen.ResultAsFloat())  end
+local function GetWeaponDegradation(weaponObject) return Citizen.InvokeNative(0x0D78E1097F89E637, weaponObject, Citizen.ResultAsFloat()) end
+local function GetWeaponPermanentDegradation(weaponObject) return Citizen.InvokeNative(0xD56E5F336C675EFA, weaponObject, Citizen.ResultAsFloat()) end
+local function GetWeaponName(weaponHash) return Citizen.InvokeNative(0x89CF5FF3D363311E,weaponHash,Citizen.ResultAsString()) end
+local function GetWeaponNameWithPermanentDegradation(weaponHash, value) return Citizen.InvokeNative(0x7A56D66C78D8EF8E, weaponHash, value, Citizen.ResultAsString()) end
+local function IsEntityDead(entity) return Citizen.InvokeNative(0x7D5B1F88E7504BBA, entity) end
+local function IsPedSwimming(ped) return Citizen.InvokeNative(0x9DE327631295B4C2, ped) end
+local function IsWeaponOneHanded(hash) return Citizen.InvokeNative(0xD955FEE4B87AFA07, hash) end
+local function IsWeaponTwoHanded(hash) return Citizen.InvokeNative(0x0556E9D2ECF39D01, hash) end
+local function GetObjectIndexFromEntityIndex(entity) return Citizen.InvokeNative(0x280BBE5601EAA983, entity) end
+local function GetCurrentPedWeaponEntityIndex(ped, attachPoint) return Citizen.InvokeNative(0x3B390A939AF0B5FC, ped, attachPoint) end
+local function GetItemInteractionFromPed(ped) return Citizen.InvokeNative(0x6AA3DCA2C6F5EB6D,ped) end
+local function DisableOnFootFirstPersonViewThisUpdate() return Citizen.InvokeNative(0x9C473089A934C930) end
+
+local function shouldContinueInspect(player)
+  if IsEntityDead(player) or IsPedSwimming(player) or not IsPedRunningInspectionTask(player) then
+    return false
+  end
+  return true
+end
+
+local function getGuidFromItemId(inventoryId, itemData, category, slotId)
+  local outItem = Utils.DataView.ArrayBuffer(4 * 8)
+
+  -- INVENTORY_GET_GUID_FROM_ITEMID
+  local success = InventoryGetGuidFromItemId(inventoryId, itemData or 0, category, slotId, outItem:Buffer())
+
+  return success and outItem or nil
+end
+
+local function getWeaponStruct(weaponHash)
+	local charStruct = getGuidFromItemId(1, nil, GetHashKey("CHARACTER"), -1591664384)
+	local unkStruct = getGuidFromItemId(1, charStruct:Buffer(), 923904168, -740156546)
+	local weaponStruct = getGuidFromItemId(1, unkStruct:Buffer(), weaponHash, -1591664384)
+	return weaponStruct
+end
+
+-- Actions to perform before closing inspection
+local function cleanupInspectionMenu(uiFlowBlock, uiContainer)
+	Citizen.InvokeNative(0x4EB122210A90E2D8, -813354801)
+	DatabindingRemoveDataEntry(uiContainer)
+	--ReleaseFlowBlock(uiFlowBlock) --Citizen.InvokeNative(0xF320A77DD5F781DF, uiFlowBlock)
+	Citizen.InvokeNative(0x8BC7C1F929D07BF3, GetHashKey("HUD_CTX_INSPECT_ITEM")) -- DisableHUDComponent
+end
+
+local function updateWeaponStats(player, uiContainer, weaponHash)
+  
+end
+
+local function initialize(player, weaponHash, bottomText)
+	local uiFlowBlock = RequestFlowBlock(GetHashKey("PM_FLOW_WEAPON_INSPECT"))
+
+	local uiContainer = DatabindingAddDataContainerFromPath("", "ItemInspection")
+	DatabindingAddDataBool(uiContainer, "Visible", true)
+
+	-- Update Stats in UI
+	Citizen.InvokeNative(0x46DB71883EE9D5AF, uiContainer, "stats", getWeaponStruct(weaponHash):Buffer(), player)
+
+	DatabindingAddDataString(uiContainer, "tipText", tostring(bottomText))
+	-- Use this if planned rust, dirt and degrade clean differently to show current work
+	DatabindingAddDataHash(uiContainer, "itemLabel", GetHashKey(GetWeaponName(weaponHash)))
+
+	Citizen.InvokeNative(0x10A93C057B6BD944, uiFlowBlock)
+	Citizen.InvokeNative(0x3B7519720C9DCB45, uiFlowBlock, 0)
+	Citizen.InvokeNative(0x4C6F2C4B7A03A266, -813354801, uiFlowBlock)
+
+	Citizen.InvokeNative(0x4CC5F2FC1332577F, GetHashKey("HUD_CTX_INSPECT_ITEM")) -- Remove Map UI 
+
+	return uiFlowBlock, uiContainer
+end
+
+local function createStateMachine(uiFlowBlock)
+  if not Citizen.InvokeNative(0x10A93C057B6BD944, uiFlowBlock) --[[ UIFLOWBLOCK_IS_LOADED ]] then
+    print("uiflowblock failed to load")
+    return 0
+  end
+
+  Citizen.InvokeNative(0x3B7519720C9DCB45, uiFlowBlock, 0) -- UIFLOWBLOCK_ENTER
+
+  if not Citizen.InvokeNative(0x5D15569C0FEBF757, -813354801) --[[ UI_STATE_MACHINE_EXISTS ]] then
+    if not Citizen.InvokeNative(0x4C6F2C4B7A03A266, -813354801, uiFlowBlock) --[[ UI_STATE_MACHINE_CREATE ]] then
+      print("uiStateMachine wasn't created")
+      return 0
+    end
+  end
+
+  return 1
+end
+
+-- Use type here to make different buttons
+local function toggleCleanPrompt(player, weaponObject, hasGunOil)
+  if hasGunOil and GetWeaponDamage(weaponObject) ~= 0 and GetWeaponDamage(weaponObject) > 0.0 then
+    SetPedBlackboardBool(player, "GENERIC_WEAPON_CLEAN_PROMPT_AVAILABLE", 1, -1)
+  else
+    SetPedBlackboardBool(player, "GENERIC_WEAPON_CLEAN_PROMPT_AVAILABLE", 0, -1)
+  end
+end
+
 function Weapon.Inspect(currentWeapon)
+	local player = cache.ped
+	local weaponHash = currentWeapon.hash
+	local interaction
+
+	-- Check here for item to toggle cleanPrompt from inv
+	local hasGunOil = true 
+
+	if IsWeaponOneHanded(weaponHash) then -- One Handed
+		interaction = GetHashKey("SHORTARM_HOLD_ENTER")
+	elseif IsWeaponTwoHanded(weaponHash) then -- Two Handed
+		interaction = GetHashKey("LONGARM_HOLD_ENTER")
+	end
+
+	TaskItemInteraction(player, weaponHash, interaction, 1, 0, 0)
+
+	local weaponObject = currentWeapon.weaponObject
+	
+	local uiFlowBlock, uiContainer = initialize(player, weaponHash, currentWeapon.metadata?.serial or "ILLEGAL")
+
+	if uiContainer then
+		local state = createStateMachine(uiFlowBlock)
+
+		while shouldContinueInspect(player) do
+			Citizen.Wait(1)
+			DisableControlAction(0, GetHashKey("INPUT_NEXT_CAMERA"), true) -- V button
+			DisableControlAction(0, GetHashKey("INPUT_CONTEXT_LT"), true) -- Right Click
+			DisableOnFootFirstPersonViewThisUpdate()
+
+			if state == 0 then
+				state = createStateMachine(uiFlowBlock)
+			elseif state == 1 then
+				toggleCleanPrompt(player, weaponObject, hasGunOil)
+				if GetItemInteractionFromPed(player) == GetHashKey("LONGARM_CLEAN_ENTER") or GetItemInteractionFromPed(player) == GetHashKey("SHORTARM_CLEAN_ENTER") then
+					if takeGunOilCallback then takeGunOilCallback() end -- Remove Oil From Here
+					state = 2
+				end
+			elseif state == 2 then
+				if GetItemInteractionFromPed(player) == GetHashKey("LONGARM_CLEAN_EXIT") or GetItemInteractionFromPed(player) == GetHashKey("SHORTARM_CLEAN_EXIT") then
+					state = 3
+				else
+					local cleanProgress = Citizen.InvokeNative(0xBC864A70AD55E0C1, PlayerPedId(), GetHashKey("INPUT_CONTEXT_X"), Citizen.ResultAsFloat())
+					if cleanProgress > 0.0 then
+						-- Update Weapon Stats Here
+					end
+				end
+      		elseif state == 3 then
+				-- Update weapon stats in UI
+				Citizen.InvokeNative(0x46DB71883EE9D5AF, uiContainer, "stats", getWeaponStruct(weaponHash):Buffer(), player)
+				state = 1
+			end
+		end
+
+		cleanupInspectionMenu(uiFlowBlock, uiContainer)
+	else
+		print('UI Container Not Found')
+	end
 end
 
 Utils.Disarm = Weapon.Disarm

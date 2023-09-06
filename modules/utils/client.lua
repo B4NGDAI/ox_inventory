@@ -281,6 +281,4 @@ end
 
 Utils.DataView = DataView
 
-
-
 return Utils
