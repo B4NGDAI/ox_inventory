@@ -18,6 +18,7 @@ interface DataProps {
   slot?: number;
   serial?: string;
   id?: number;
+  type?: string; 
 }
 
 interface Button {
@@ -70,7 +71,7 @@ const InventoryContext: React.FC = () => {
         setClipboard(data.serial || '');
         break;
       case 'inspectWeapon':
-        fetchNui('inspectWeapon', item.slot);
+        fetchNui('inspectWeapon', {slot: item.slot, type: data.type});
         break;
       case 'custom':
         fetchNui('useButton', { id: (data?.id || 0) + 1, slot: item.slot });
@@ -127,9 +128,24 @@ const InventoryContext: React.FC = () => {
             {Locale.ui_copy}
           </MenuItem>
         )}
-        {item && item.group && inspectGroups.includes(item.group) && (
-          <MenuItem onClick={() => handleClick({ action: 'inspectWeapon'})}>
-            {Locale.ui_inspectWeapon}
+        {/* {item && item.group && inspectGroups.includes(item.group) && item.metadata?.rust > 0 && (
+          <MenuItem onClick={() => handleClick({ action: 'inspectWeapon' , type: "RUST"})}>
+            {Locale.ui_cleanRustWeapon}
+          </MenuItem>
+        )}
+        {item && item.group && inspectGroups.includes(item.group) && item.metadata?.dirt > 0 && (
+          <MenuItem onClick={() => handleClick({ action: 'inspectWeapon' , type: "DIRT"})}>
+            {Locale.ui_cleanDirtWeapon}
+          </MenuItem>
+        )} */}
+        {item && item.metadata?.rust > 0 && (
+          <MenuItem onClick={() => handleClick({ action: 'inspectWeapon' , type: "RUST"})}>
+            {Locale.ui_cleanRustWeapon}
+          </MenuItem>
+        )}
+        {item && item.metadata?.dirt > 0 && (
+          <MenuItem onClick={() => handleClick({ action: 'inspectWeapon' , type: "DIRT"})}>
+            {Locale.ui_cleanDirtWeapon}
           </MenuItem>
         )}
         {item && item.metadata?.components && item.metadata?.components.length > 0 && <Divider />}

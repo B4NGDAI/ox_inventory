@@ -1450,14 +1450,14 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 	client.interval = SetInterval(function() 
 		if currentWeapon and currentWeapon.timer and currentWeapon.canInspect then
 			if math.random(0, 100) <= 20 and ShouldRustWeapon() then
-				if currentWeapon.metadata?.rust <= 100 then
+				if currentWeapon.metadata?.rust < 100 then
 					currentWeapon.metadata.rust = currentWeapon.metadata.rust + 1
 					TriggerServerEvent('ox_inventory:updateWeapon', 'rust', currentWeapon.metadata.rust) 
 					Citizen.InvokeNative(0xE22060121602493B ,currentWeapon.weaponObject , tonumber((currentWeapon.metadata.rust / 100))) --SetWeaponRust
 					print('RUSTED')
 				end
 			elseif math.random(0, 100) <= 50 and ShouldDirtWeapon() then
-				if currentWeapon.metadata?.dirt <= 100 then
+				if currentWeapon.metadata?.dirt < 100 then
 					currentWeapon.metadata.dirt = currentWeapon.metadata.dirt + 1
 					TriggerServerEvent('ox_inventory:updateWeapon', 'dirt', currentWeapon.metadata.dirt) 
 					Citizen.InvokeNative(0x812CE61DEBCAB948 ,currentWeapon.weaponObject , tonumber((currentWeapon.metadata.dirt / 100))) --SetWeaponDust
@@ -1787,18 +1787,20 @@ RegisterNUICallback('removeAmmo', function(slot, cb)
 	end
 end)
 
-RegisterNUICallback('inspectWeapon', function(slot, cb)
+RegisterNUICallback('inspectWeapon', function(data, cb)
 	cb(1)
-	print('enspect nu')
-	if currentWeapon and currentWeapon?.canInspect == true then
-		local slotData = PlayerData.inventory[slot]
-		print(json.encode(currentWeapon,{indent=true}))
+	local slotData = PlayerData.inventory[data.slot]	
+	if not slotData then return end
+
+	if currentWeapon and currentWeapon.canInspect == true then
+		if currentWeapon?.slot ~= slotData.slot then 
+			return lib.notify({ id = 'inventory_inspect-Failed', type = 'error', description = 'Fck oFf exploiter. I knew this ;)' })
+		end
 		client.closeInventory()
 		Wait(500)
-		Weapon.Inspect(currentWeapon)
-		--exports['dev-lua']:startWeaponInspection(true, nil, slotData.metadata.serial)
+		Weapon.Inspect(currentWeapon, data.type)
 	else
-		print('Cannot Inspect')
+		lib.notify({ id = 'inventory_inspect-Failed', type = 'error', description = 'Please Equip Gun First' })
 	end
 end)
 

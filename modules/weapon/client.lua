@@ -244,12 +244,8 @@ end
 local function cleanupInspectionMenu(uiFlowBlock, uiContainer)
 	Citizen.InvokeNative(0x4EB122210A90E2D8, -813354801)
 	DatabindingRemoveDataEntry(uiContainer)
-	--ReleaseFlowBlock(uiFlowBlock) --Citizen.InvokeNative(0xF320A77DD5F781DF, uiFlowBlock)
-	Citizen.InvokeNative(0x8BC7C1F929D07BF3, GetHashKey("HUD_CTX_INSPECT_ITEM")) -- DisableHUDComponent
-end
-
-local function updateWeaponStats(player, uiContainer, weaponHash)
-  
+	--ReleaseFlowBlock(uiFlowBlock) -- Release
+	Citizen.InvokeNative(0x8BC7C1F929D07BF3, GetHashKey("HUD_CTX_INSPECT_ITEM")) -- Enable Map UI
 end
 
 local function initialize(player, weaponHash, bottomText)

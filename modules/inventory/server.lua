@@ -415,8 +415,8 @@ function Inventory.SlotWeight(item, slot, ignoreCount)
 
 	if not slot.metadata then slot.metadata = {} end
 
-	if item.ammoname and slot.metadata.ammo then
-		local ammoWeight = Items(item.ammoname)?.weight
+	if slot.metadata?.ammoType and slot.metadata?.ammo then
+		local ammoWeight = Items(slot.metadata?.ammoType)?.weight
 
 		if ammoWeight then
 			weight += (ammoWeight * slot.metadata.ammo)
@@ -2532,12 +2532,10 @@ lib.callback.register('ox_inventory:removeAmmoFromWeapon', function(source, slot
 	if not inventory then return end
 
 	local slotData = inventory.items[slot]
-	--print(json.encode(slotData, {indent = true}))
 
-	if not slotData or not slotData.metadata?.ammo or slotData.metadata?.ammo < 1 then return end
+	if not slotData or not slotData.metadata?.ammoType or not slotData.metadata?.ammo or slotData.metadata?.ammo < 1 then return end
 
 	local item = Items(slotData.metadata?.ammoType)
-	print(json.encode(item, {indent = true}))
 
 	--if not item or not item.ammoname then return end
 	if not item then return end
@@ -2545,7 +2543,7 @@ lib.callback.register('ox_inventory:removeAmmoFromWeapon', function(source, slot
 	if Inventory.AddItem(inventory, item.name, slotData.metadata?.ammo) then
 		slotData.metadata.ammo = nil
 		slotData.metadata.ammoType = nil
-		slotData.weight = Inventory.SlotWeight(item, slotData)
+		slotData.weight = Inventory.SlotWeight(Items(slotData.name), slotData)
 
 		inventory:syncSlotsWithPlayer({
 			{ item = slotData }
