@@ -230,6 +230,7 @@ function client.openInventory(inv, data)
 			end
 
 			left, right = lib.callback.await('ox_inventory:openInventory', false, inv, data)
+			
 		end
 
 		if left then
@@ -279,33 +280,6 @@ end
 
 RegisterNetEvent('ox_inventory:openInventory', client.openInventory)
 exports('openInventory', client.openInventory)
-
-Citizen.CreateThread(function()
-	while true do
-		Citizen.Wait(1)
-		if PlayerData.loaded and IsControlJustPressed(0, 0x80F28E95) then
-			if invOpen then
-				client.closeInventory()
-			end
-
-			if cache.vehicle then
-				openGlovebox(cache.vehicle)
-			end
-
-			local closest = lib.points.getClosestPoint()
-
-			if closest and closest.currentDistance < 1.2 and (not closest.instance or closest.instance == currentInstance) then
-				if closest.inv == 'crafting' then
-					client.openInventory('crafting', { id = closest.id, index = closest.index })
-				elseif closest.inv ~= 'license' and closest.inv ~= 'policeevidence' then
-					client.openInventory(closest.inv or 'drop', { id = closest.invId, type = closest.type })
-				end
-			end
-
-			client.openInventory()
-		end
-	end
-end)
 
 RegisterNetEvent('ox_inventory:forceOpenInventory', function(left, right)
 	if source == '' then return end
@@ -441,6 +415,7 @@ exports('useItem', useItem)
 ---@param slot number
 ---@return boolean?
 function useSlot(slot)
+	print('Use Slot :',slot)
 	local item = PlayerData.inventory[slot]
 	if not item then print('Item Not Found') return end
 
@@ -448,6 +423,7 @@ function useSlot(slot)
 	if not data then print('Item Data Not Found') return end
 
 	if canUseItem(data.ammo and true) then
+		print('Passed canUseItem')
 		if data.component and not currentWeapon then
 			return lib.notify({ id = 'weapon_hand_required', type = 'error', description = locale('weapon_hand_required') })
 		end
@@ -466,6 +442,7 @@ function useSlot(slot)
 				return lib.notify({ type = 'error', description = locale('not_enough_durability', label) })
 			end
 		--end
+		print('Crossed Durab Check')
 
 		data.slot = slot
 
@@ -480,7 +457,7 @@ function useSlot(slot)
 				return TriggerEvent(data.client.event, data, {name = item.name, slot = item.slot, metadata = item.metadata})
 			end
 		end
-
+		print('Crossed Metadata Cont')
 		if data.effect then
 			data:effect({name = item.name, slot = item.slot, metadata = item.metadata})
 		elseif data.weapon then
@@ -489,7 +466,6 @@ function useSlot(slot)
 			if IsCinematicCamRendering() then SetCinematicModeActive(false) end
 
 			if currentWeapon then
-				print('Disarm Requested')
 				local weaponSlot = currentWeapon.slot
 				currentWeapon = Weapon.Disarm(currentWeapon, false, false)
 
@@ -514,7 +490,6 @@ function useSlot(slot)
 			end)
 		elseif currentWeapon then
 			if data.ammo then -- if uses weapon ? as per items/shared.lua
-				--print(json.encode(currentWeapon,{indent=true}))
 				if EnableWeaponWheel then return end
 				-- Index Method. Might need in case of performance issues
 				-- if not (currentWeapon.allowedAmmos and currentWeapon.allowedAmmos[data.name]) then
@@ -530,8 +505,6 @@ function useSlot(slot)
 				end
 
 				-- GetCurrentPedWeaponAmmoType match loaded ammo with ammo name
-				print(Citizen.InvokeNative(0x7E7B19A4355FEE13, playerPed, Citizen.InvokeNative(0x6CA484C9A7377E4F, playerPed, true)))
-				print(joaat(data.name))
 				-- if Citizen.InvokeNative(0x7E7B19A4355FEE13, playerPed, Citizen.InvokeNative(0x6CA484C9A7377E4F, playerPed, true)) ~= joaat(data.name) then
 				-- 	return lib.notify({title = 'Ammo',description = 'Wrong Ammo Match Failed',type = 'error'})
 				-- end
@@ -542,11 +515,11 @@ function useSlot(slot)
 
 					local clipSize = GetMaxAmmoInClip(playerPed, currentWeapon.hash, true)
 					if currentWeapon.hash == `WEAPON_BOW` or currentWeapon.hash == `WEAPON_BOW_IMPROVED` then clipSize = 5 end -- Later check for quiver on player
-					--print('ClipSize', clipSize)
+
 					local currentAmmo = GetPedAmmoByType(playerPed, joaat(data.name))
-					--print('Current Ammo :',currentAmmo)
+
 					local missingAmmo = clipSize - currentAmmo
-					--print('Missing Ammo :',missingAmmo)
+					
 					local addAmmo = resp.count > missingAmmo and missingAmmo or resp.count
 					local newAmmo = currentAmmo + addAmmo
 					if newAmmo == currentAmmo then 
@@ -560,7 +533,6 @@ function useSlot(slot)
 							TaskReloadWeapon(playerPed, true)
 						end
 					else
-						--AddAmmoToPed(playerPed, currentWeapon.hash, addAmmo)
 						-- Check in weapon debug command
 						print('Adding '..addAmmo.. 'x ammo of type :'..joaat(resp.name).. ' ('..resp.name..')' )
 						Citizen.InvokeNative(0x106A811C6D3035F3, playerPed, joaat(resp.name), addAmmo, `ADD_REASON_DEFAULT`) --AddAmmoToPedByType
@@ -618,30 +590,13 @@ function useSlot(slot)
 				useItem(data)
 			end
 		elseif not data.ammo and not data.component then
+			print('Not ammo not comp')
 			useItem(data)
 		end
 	end
 end
-exports('useSlot', useSlot)
 
-Citizen.CreateThread(function()
-	while true do
-		Citizen.Wait(0)
-		DisableControlAction(0, 0xE6F612E4, true) -- Button 1
-		DisableControlAction(0, 0x1CE6D9EB, true) -- Button 2
-		DisableControlAction(0, 0x4F49CC4C, true) -- Button 3
-		DisableControlAction(0, 0x8F9F9E58, true) -- Button 4
-		if     PlayerData.loaded and IsDisabledControlJustPressed(0, 0xE6F612E4) then -- Number 1
-			useSlot(1) 
-		elseif PlayerData.loaded and IsDisabledControlJustPressed(0, 0x1CE6D9EB) then -- Number 2
-			useSlot(2) 
-		elseif PlayerData.loaded and IsDisabledControlJustPressed(0, 0x4F49CC4C) then -- Number 3
-			useSlot(3) 
-		elseif PlayerData.loaded and IsDisabledControlJustPressed(0, 0x8F9F9E58) then -- Number 4
-			useSlot(4)
-		end
-	end
-end)
+exports('useSlot', useSlot)
 
 ---@param id number
 ---@param slot number
@@ -726,11 +681,12 @@ local function registerCommands()
 			end
 
 			local closest = lib.points.getClosestPoint()
-
+			
 			if closest and closest.currentDistance < 1.2 and (not closest.instance or closest.instance == currentInstance) then
 				if closest.inv == 'crafting' then
 					return client.openInventory('crafting', { id = closest.id, index = closest.index })
 				elseif closest.inv ~= 'license' and closest.inv ~= 'policeevidence' then
+
 					return client.openInventory(closest.inv or 'drop', { id = closest.invId, type = closest.type })
 				end
 			end
@@ -1049,8 +1005,12 @@ end)
 local function nearbyDrop(point)
 	if not point.instance or point.instance == currentInstance then
 		---@diagnostic disable-next-line: param-type-mismatch
-		--DrawMarker(2, point.coords.x, point.coords.y, point.coords.z, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.3, 0.2, 0.15, 150, 30, 30, 222, false, false, 0, true, false, false, false)
-		Citizen.InvokeNative(0x2A32FAA57B937173,0x07DCE236,point.coords.x, point.coords.y, point.coords.z,0,0,0,0,0,0,1.0,1.0,1.0,250,250,100,250,0, 0, 2, 0, 0, 0, 0)
+		Citizen.InvokeNative(0x2A32FAA57B937173,0x07DCE236,point.coords.x, point.coords.y, point.coords.z,
+		0,0,0,
+		0,0,0,
+		0.5,0.5,0.5,
+		250,100,100,150,
+		1, 0, 2, 1, 0)
 	end
 end
 
@@ -1094,6 +1054,7 @@ local function createDrop(dropId, data)
 		point.distance = 30
 		point.onEnter = onEnterDrop
 		point.onExit = onExitDrop
+		point.nearby = nearbyDrop
 	else
 		point.nearby = nearbyDrop
 	end
@@ -1270,14 +1231,11 @@ end
 
 local function ShouldDirtWeapon()
 	local ped = cache.ped
-	if Citizen.InvokeNative(0x4BEB42AEBCA732E9) == `SANDSTORM` then --Has Sandstorm Weather defined above (works only with weathersync)
-		local interior = GetInteriorFromEntity(ped)
-		if interior == 0 then 
-			return true
-		else
-			return false
-		end
-	elseif (GetWindSpeed() > 1.0 and GetWindSpeed() < 5.0) and math.random(0, 100) < 20 then
+	if GetInteriorFromEntity(ped) ~= 0 then
+		return false
+	elseif Citizen.InvokeNative(0x4BEB42AEBCA732E9) == `SANDSTORM`  then --Has Sandstorm Weather defined above (works only with weathersync)
+		return true
+	elseif (GetWindSpeed() > 2.0 and GetWindSpeed() < 5.0) and math.random(0, 100) < 20 then
 		return true
 	elseif GetWindSpeed() > 5.0 then
 		return true
@@ -1305,8 +1263,6 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 	if setStateBagHandler then setStateBagHandler(('player:%s'):format(cache.serverId)) end
 
 	local ItemData = table.create(0, #Items)
-
-	
 
 	for _, v in pairs(Items --[[@as table<string, OxClientItem>]]) do
 		local buttons = v.buttons and {} or nil
@@ -1454,14 +1410,12 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 					currentWeapon.metadata.rust = currentWeapon.metadata.rust + 1
 					TriggerServerEvent('ox_inventory:updateWeapon', 'rust', currentWeapon.metadata.rust) 
 					Citizen.InvokeNative(0xE22060121602493B ,currentWeapon.weaponObject , tonumber((currentWeapon.metadata.rust / 100))) --SetWeaponRust
-					print('RUSTED')
 				end
 			elseif math.random(0, 100) <= 50 and ShouldDirtWeapon() then
 				if currentWeapon.metadata?.dirt < 100 then
 					currentWeapon.metadata.dirt = currentWeapon.metadata.dirt + 1
 					TriggerServerEvent('ox_inventory:updateWeapon', 'dirt', currentWeapon.metadata.dirt) 
 					Citizen.InvokeNative(0x812CE61DEBCAB948 ,currentWeapon.weaponObject , tonumber((currentWeapon.metadata.dirt / 100))) --SetWeaponDust
-					print('DUSTED')
 				end
 			end
 		end
@@ -1567,17 +1521,47 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 		end
 		
 		if invOpen then 
-			--DisableAllControlActions(0)
+			DisableAllControlActions(0) -- test
 		end
 	 	--DisablePlayerVehicleRewards(playerId)
 
 		if invOpen then
-
 		else
 	-- 		if invBusy then
 	-- 			DisableControlAction(0, 23, true)
 	-- 			DisableControlAction(0, 36, true)
 	-- 		end
+			DisableControlAction(0, 0xE6F612E4, true) -- Button 1
+			DisableControlAction(0, 0x1CE6D9EB, true) -- Button 2
+			DisableControlAction(0, 0x4F49CC4C, true) -- Button 3
+			DisableControlAction(0, 0x8F9F9E58, true) -- Button 4
+			if IsDisabledControlJustPressed(0, 0xE6F612E4) then -- Number 1
+				useSlot(1) 
+			elseif IsDisabledControlJustPressed(0, 0x1CE6D9EB) then -- Number 2
+				useSlot(2) 
+			elseif IsDisabledControlJustPressed(0, 0x4F49CC4C) then -- Number 3
+				useSlot(3) 
+			elseif IsDisabledControlJustPressed(0, 0x8F9F9E58) then -- Number 4
+				useSlot(4)
+			end
+
+			if IsControlJustReleased(0, 0x80F28E95) then -- L Button
+				if cache.vehicle then
+					return openGlovebox(cache.vehicle)
+				end
+
+				local closest = lib.points.getClosestPoint()
+
+				if closest and closest.currentDistance < 1.2 and (not closest.instance or closest.instance == currentInstance) then
+					if closest.inv == 'crafting' then
+						return client.openInventory('crafting', { id = closest.id, index = closest.index })
+					elseif closest.inv ~= 'license' and closest.inv ~= 'policeevidence' then
+						return client.openInventory(closest.inv or 'drop', { id = closest.invId, type = closest.type })
+					end
+				end
+
+				return client.openInventory()
+			end
 
 			if usingItem or invBusy == true or IsPedCuffed(playerPed) then
 				DisablePlayerFiring(playerId, true)
@@ -1601,7 +1585,6 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 	 			if not invBusy and currentWeapon.timer ~= 0 and currentWeapon.timer < GetGameTimer() then
 	 				currentWeapon.timer = 0
 	 				if weaponAmmo then
-						print('Saving :', weaponAmmo)
 	 					TriggerServerEvent('ox_inventory:updateWeapon', 'ammo', weaponAmmo)
 						
 	 					-- WIP - Auto Reload not working for Bow :/
@@ -1642,8 +1625,6 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 									Citizen.InvokeNative(0xA7A57E89E965D839 , currentWeapon.weaponObject , tonumber(1 - (currentWeapon.metadata?.durability / 100))) --SetWeaponDegradation
 									
 								end
-							else
-								print('More Ammo ?')
 	 						end
 	 					end
 
@@ -1671,7 +1652,6 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 							end
 
 							while IsPedPlantingBomb(playerPed) do
-								print('Planting')
 								Wait(1) 
 							end
 
@@ -1680,7 +1660,6 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 							plyState.invBusy = false
 							currentWeapon = nil
 
-							print('Removed Weapon')
 							RemoveWeaponFromPed(playerPed, weapon.hash)
 							TriggerEvent('ox_inventory:currentWeapon')
 						end)
@@ -1705,9 +1684,6 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 	plyState:set('invHotkeys', true, false)
 	collectgarbage('collect')
 end)
-
-
-
 
 AddEventHandler('onResourceStop', function(resourceName)
 	if shared.resource == resourceName then

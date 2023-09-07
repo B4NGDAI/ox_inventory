@@ -54,5 +54,12 @@ return {
 	['KIT_GUN_OIL'] = {
 		label = 'Gun Oil',
 		weight = 220,
+		degrade = 5,
+	},
+	['KIT_CLOTH_CLEAN'] = {
+		label = 'Clean Cloth',
+		weight = 220,
+		consume = 0.1,
+		allowArmed = true
 	}
 }

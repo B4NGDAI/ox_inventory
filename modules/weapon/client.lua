@@ -109,10 +109,13 @@ function Weapon.Equip(item, data)
 		Wait(100)
 	end
 	item.weaponObject = WeaponObject
+
 	Citizen.InvokeNative(0xA7A57E89E965D839 ,item.weaponObject , tonumber(1 - (item.metadata?.durability / 100))) --SetWeaponDegradation
 	if item.metadata?.rust > 0 then
 		Citizen.InvokeNative(0xE22060121602493B ,item.weaponObject , tonumber((item.metadata?.rust / 100))) --SetWeaponRust
-	elseif item.metadata?.dirt > 0 then
+	end
+	-- didn't work with elseif
+	if item.metadata?.dirt > 0 then
 		Citizen.InvokeNative(0x812CE61DEBCAB948 ,item.weaponObject , tonumber((item.metadata?.dirt / 100))) --SetWeaponDirt
 	end
 
@@ -288,22 +291,66 @@ local function createStateMachine(uiFlowBlock)
   return 1
 end
 
--- Use type here to make different buttons
-local function toggleCleanPrompt(player, weaponObject, hasGunOil)
-  if hasGunOil and GetWeaponDamage(weaponObject) ~= 0 and GetWeaponDamage(weaponObject) > 0.0 then
-    SetPedBlackboardBool(player, "GENERIC_WEAPON_CLEAN_PROMPT_AVAILABLE", 1, -1)
-  else
-    SetPedBlackboardBool(player, "GENERIC_WEAPON_CLEAN_PROMPT_AVAILABLE", 0, -1)
-  end
+local function hasItemOnPlayer(item)
+	local hasItem = false
+	local slot = nil
+	local count = 0
+	local slotData = Inventory.GetSlotsWithItem(item)
+	if #slotData > 0 then
+		for k, v in pairs(slotData) do
+			if v.metadata?.durability ~= nil then
+				if v.metadata?.durability > 0 then
+					hasItem = true
+					slot = v.slot
+					return hasItem, slot
+				end
+			else
+				hasItem = true
+				slot = v.slot
+				return hasItem, slot
+			end
+		end
+	end
+
+	return hasItem, slot
 end
 
-function Weapon.Inspect(currentWeapon)
+-- Use type here to make different buttons
+local function toggleCleanPrompt(player, weaponObject, actionType, hasItem)
+	if ((actionType == "RUST" and GetWeaponDamage(weaponObject) ~= 0 and GetWeaponDamage(weaponObject) > 0.0) or
+	(actionType == "DIRT" and GetWeaponDirt(weaponObject) ~= 0 and GetWeaponDirt(weaponObject) > 0.0))
+	and hasItem
+	then
+		SetPedBlackboardBool(player, "GENERIC_WEAPON_CLEAN_PROMPT_AVAILABLE", 1, -1)
+	else
+		SetPedBlackboardBool(player, "GENERIC_WEAPON_CLEAN_PROMPT_AVAILABLE", 0, -1)
+	end
+end
+
+local function clamp(num)
+  if num > 1.0 then
+    return 1.0
+  elseif num < 0.0 then
+    return 0.0
+  else
+    return num
+  end
+end
+-- TODO : Keep Soot 0.0 at all places
+
+function Weapon.Inspect(currentWeapon, actionType)
 	local player = cache.ped
 	local weaponHash = currentWeapon.hash
 	local interaction
 
 	-- Check here for item to toggle cleanPrompt from inv
-	local hasGunOil = true 
+	local hasItem = false
+	if actionType == "RUST" then
+		hasItem , _ = hasItemOnPlayer('KIT_GUN_OIL')
+	end
+	if actionType == "DIRT" then
+		hasItem = true
+	end
 
 	if IsWeaponOneHanded(weaponHash) then -- One Handed
 		interaction = GetHashKey("SHORTARM_HOLD_ENTER")
@@ -314,6 +361,9 @@ function Weapon.Inspect(currentWeapon)
 	TaskItemInteraction(player, weaponHash, interaction, 1, 0, 0)
 
 	local weaponObject = currentWeapon.weaponObject
+
+	local initialWeaponDamage = clamp(GetWeaponDamage(weaponObject))
+	local initialWeaponDirt = clamp(GetWeaponDirt(weaponObject))
 	
 	local uiFlowBlock, uiContainer = initialize(player, weaponHash, currentWeapon.metadata?.serial or "ILLEGAL")
 
@@ -329,18 +379,35 @@ function Weapon.Inspect(currentWeapon)
 			if state == 0 then
 				state = createStateMachine(uiFlowBlock)
 			elseif state == 1 then
-				toggleCleanPrompt(player, weaponObject, hasGunOil)
+				toggleCleanPrompt(player, weaponObject, actionType, hasItem)
 				if GetItemInteractionFromPed(player) == GetHashKey("LONGARM_CLEAN_ENTER") or GetItemInteractionFromPed(player) == GetHashKey("SHORTARM_CLEAN_ENTER") then
-					if takeGunOilCallback then takeGunOilCallback() end -- Remove Oil From Here
+					if actionType == "RUST" then
+						-- Can be exploited if inv open somehow (rob?)
+						TriggerServerEvent('ox_inventory:removeItem', 'KIT_GUN_OIL', 1, nil, slot)	
+					end
 					state = 2
 				end
 			elseif state == 2 then
 				if GetItemInteractionFromPed(player) == GetHashKey("LONGARM_CLEAN_EXIT") or GetItemInteractionFromPed(player) == GetHashKey("SHORTARM_CLEAN_EXIT") then
+					print('Clean Done')
+					if actionType == "RUST" then
+						SetWeaponDamage(weaponObject, 0.0)
+						TriggerServerEvent('ox_inventory:updateWeapon', 'rust', -50) --Negative To Avoid further rusting 
+					elseif actionType == "DIRT" then
+						SetWeaponDirt(weaponObject, 0.0)
+						TriggerServerEvent('ox_inventory:updateWeapon', 'dirt', 0) 
+					end
 					state = 3
 				else
 					local cleanProgress = Citizen.InvokeNative(0xBC864A70AD55E0C1, PlayerPedId(), GetHashKey("INPUT_CONTEXT_X"), Citizen.ResultAsFloat())
 					if cleanProgress > 0.0 then
-						-- Update Weapon Stats Here
+						if actionType == "RUST" then
+							local weaponDamage = (initialWeaponDamage + 0.0) - (cleanProgress * initialWeaponDamage)
+							SetWeaponDamage(weaponObject, weaponDamage)
+						elseif actionType == "DIRT" then
+							local weaponDirt = initialWeaponDirt - (cleanProgress * initialWeaponDirt)
+							SetWeaponDirt(weaponObject, weaponDirt)
+						end
 					end
 				end
       		elseif state == 3 then

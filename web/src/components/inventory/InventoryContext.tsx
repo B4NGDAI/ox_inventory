@@ -128,16 +128,6 @@ const InventoryContext: React.FC = () => {
             {Locale.ui_copy}
           </MenuItem>
         )}
-        {/* {item && item.group && inspectGroups.includes(item.group) && item.metadata?.rust > 0 && (
-          <MenuItem onClick={() => handleClick({ action: 'inspectWeapon' , type: "RUST"})}>
-            {Locale.ui_cleanRustWeapon}
-          </MenuItem>
-        )}
-        {item && item.group && inspectGroups.includes(item.group) && item.metadata?.dirt > 0 && (
-          <MenuItem onClick={() => handleClick({ action: 'inspectWeapon' , type: "DIRT"})}>
-            {Locale.ui_cleanDirtWeapon}
-          </MenuItem>
-        )} */}
         {item && item.metadata?.rust > 0 && (
           <MenuItem onClick={() => handleClick({ action: 'inspectWeapon' , type: "RUST"})}>
             {Locale.ui_cleanRustWeapon}
