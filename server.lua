@@ -275,8 +275,6 @@ lib.callback.register('ox_inventory:useItem', function(source, itemName, slot, m
 		local item = Items(itemName)
 		local data = item and (slot and inventory.items[slot] or Inventory.GetSlotWithItem(inventory, item.name, metadata, true))
 
-		print(json.encode(data, {indent = true}))
-
 		if not data then return end
 
 		slot = data.slot
@@ -449,7 +447,6 @@ lib.addCommand({'additem', 'giveitem'}, {
 		local inventory = Inventory(args.target) --[[@as OxInventory]]
 		local count = args.count or 1
 		local success, response = Inventory.AddItem(inventory, item.name, count, args.type and { type = tonumber(args.type) or args.type })
-		print('??', success)
 		if not success then
 			return Citizen.Trace(('Failed to give %sx %s to player %s (%s)'):format(count, item.name, args.target, response))
 		end

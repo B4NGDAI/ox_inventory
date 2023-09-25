@@ -253,6 +253,8 @@ end
 local function setItemDurability(item, metadata)
 	local degrade = item.degrade
 
+	print('setItemDurability : ', item.name)
+
 	if degrade then
 		metadata.durability = os.time()+(degrade * 60)
 		metadata.degrade = degrade

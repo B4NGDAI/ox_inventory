@@ -1225,8 +1225,6 @@ exports('Search', Inventory.Search)
 function Inventory.GetItemSlots(inv, item, metadata)
 	inv = Inventory(inv) --[[@as OxInventory]]
 
-	print(json.encode(metadata))
-
 	if not inv?.slots then return end
 
 	local totalCount, slots, emptySlots = 0, {}, inv.slots
@@ -1262,8 +1260,6 @@ function Inventory.RemoveItem(inv, item, count, metadata, slot, ignoreTotal)
 	if not item then return false, 'invalid_item' end
 
 	count = math.floor(count + 0.5)
-
-	print('Count', count)
 
 	if count > 0 then
 		inv = Inventory(inv) --[[@as OxInventory]]
@@ -2303,7 +2299,6 @@ lib.cron.new('*/5 * * * *', function()
 end)
 
 function Inventory.SaveInventories(lock, clearInventories)
-	print('Saved Inventory')
 	Inventory.Lock = lock or nil
 
 	Inventory.CloseAll()
@@ -2453,9 +2448,7 @@ local function updateWeapon(source, action, value, slot, ammoType)
 			if action == 'load' and weapon.metadata.durability > 0 then --Add Ammo To weapon
 				local ammo = Items(ammoType)
 				local diff = value - (weapon.metadata?.ammo or 0)
-				print('Diff Value',diff)
 
-				--if not Inventory.RemoveItem(inventory, ammo, diff, ammoType) then print('failed to update weapon') return end
 				if not Inventory.RemoveItem(inventory, ammo, diff) then print('failed to update weapon') return end
 
 				weapon.metadata.ammo = value
@@ -2482,7 +2475,6 @@ local function updateWeapon(source, action, value, slot, ammoType)
 					weapon.metadata.durability = math.floor(value)
 					weapon.metadata.ammo = weapon.metadata.durability
 				elseif value < weapon.metadata.ammo then
-					print('Saved Ammo :',value)
 					local durability = Items(weapon.name).durability * math.abs((weapon.metadata.ammo or 0.1) - value)
 					weapon.metadata.ammo = value
 					weapon.metadata.durability = weapon.metadata.durability - durability
@@ -2491,8 +2483,6 @@ local function updateWeapon(source, action, value, slot, ammoType)
 						weapon.metadata.ammoType = nil 
 					end
 					weapon.weight = Inventory.SlotWeight(item, weapon)
-				else
-					print('More Ammo then metadata')
 				end
 			elseif action == 'melee' and value > 0 then
 				weapon.metadata.durability = weapon.metadata.durability - ((Items(weapon.name).durability or 1) * value)
